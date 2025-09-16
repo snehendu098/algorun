@@ -1,13 +1,87 @@
-'use client'
-import React, {use, useEffect, useState} from "react";
+"use client";
+
+import React, { useState } from "react";
 import { ScrollArea } from "../ui/scroll-area";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import UsersView from "./user-view";
-import { stakes } from "@/constants";
+import { useGame } from "@/contexts/GameContext";
+import { useWallet } from "@txnlab/use-wallet-react";
+import algosdk from "algosdk";
+import { toast } from "sonner";
 
 const PlaygroundInteractions = () => {
+  const [betAmount, setBetAmount] = useState<number>(0);
+  const [autoCashout, setAutoCashout] = useState<number>(0);
+  const { phase, joinGame, isConnected } = useGame();
+  const { activeAddress, signTransactions, algodClient } = useWallet();
+
+  const handlePlaceBet = async () => {
+    if (!activeAddress) return;
+
+    if (phase !== "waiting") {
+      toast.error("Bets can only be placed before the game starts");
+      return;
+    }
+
+    try {
+      const suggestedParams = await algodClient.getTransactionParams().do();
+      const transaction = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+        sender: activeAddress,
+        receiver: activeAddress,
+        amount: 0,
+        suggestedParams,
+      });
+
+      toast.loading("Please sign the transaction in your wallet...");
+
+      // Sign transaction
+      const signedTxns = await signTransactions([transaction]);
+
+      toast.dismiss();
+
+      const filteredTxns = signedTxns.filter(
+        (txn): txn is Uint8Array => txn !== null
+      );
+
+      toast.loading("Submitting transaction...");
+
+      const { txid } = await algodClient.sendRawTransaction(filteredTxns).do();
+
+      toast.dismiss();
+      toast.loading("Waiting for confirmation...");
+
+      const result = await algosdk.waitForConfirmation(algodClient, txid, 4);
+
+      toast.dismiss();
+
+      if (
+        result["confirmedRound"] &&
+        activeAddress &&
+        betAmount > 0 &&
+        phase === "waiting"
+      ) {
+        joinGame(activeAddress, betAmount);
+        toast.success("Bet placed successfully!");
+      }
+    } catch (err: any) {
+      toast.dismiss();
+
+      if (err?.code === 4100 || err?.message?.includes("User Rejected Request")) {
+        toast.error("Transaction cancelled by user");
+      } else if (err?.message?.includes("insufficient balance")) {
+        toast.error("Insufficient balance");
+      } else {
+        toast.error("Failed to place bet. Please try again.");
+      }
+
+      console.log(err);
+    }
+  };
+
+  const canPlaceBet =
+    activeAddress && betAmount > 0 && phase === "waiting" && isConnected;
   return (
     <ScrollArea className="h-[85vh] rounded-xl">
       <div className="col-span-1 w-full py-6 flex-1  flex backdrop-blur-2xl flex-col p-4 rounded-xl bg-card/50">
@@ -17,9 +91,12 @@ const PlaygroundInteractions = () => {
           </Label>
           <Input
             type="number"
-            defaultValue={0.0}
+            value={betAmount}
+            onChange={(e) => setBetAmount(parseFloat(e.target.value) || 0)}
             step={0.001}
+            min={0}
             className="w-full border-2 rounded-xl bg-background"
+            placeholder="Enter bet amount"
           />
         </div>
         <div className="space-y-2 mt-6">
@@ -28,14 +105,37 @@ const PlaygroundInteractions = () => {
           </Label>
           <Input
             type="number"
-            defaultValue={0.0}
-            step={0.001}
+            value={autoCashout}
+            onChange={(e) => setAutoCashout(parseFloat(e.target.value) || 0)}
+            step={0.01}
+            min={1}
             className="w-full border-2 rounded-xl bg-background"
+            placeholder="Auto cashout multiplier"
           />
         </div>
-        <Button className="mt-6 rounded-full">Place Bet</Button>
+        <Button
+          className="mt-6 rounded-full"
+          onClick={handlePlaceBet}
+          disabled={!canPlaceBet}
+        >
+          {phase === "waiting"
+            ? "Place Bet"
+            : phase === "running"
+            ? "Game Running"
+            : "Game Ended"}
+        </Button>
 
-        <UsersView stakes={stakes} />
+        <div className="mt-4 text-sm text-center">
+          <div
+            className={`text-xs px-2 py-1 rounded ${
+              isConnected ? "text-green-500" : "text-red-500"
+            }`}
+          >
+            {isConnected ? "● Connected" : "● Disconnected"}
+          </div>
+        </div>
+
+        <UsersView />
       </div>
     </ScrollArea>
   );

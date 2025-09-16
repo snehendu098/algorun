@@ -1,7 +1,7 @@
 "use client";
 
 import { useWallet } from "@txnlab/use-wallet-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { WalletModal } from "./wallet-modal";
 import { motion } from "framer-motion";
 import { Wallet2, ChevronDown } from "lucide-react";
@@ -10,6 +10,12 @@ import { cn } from "@/lib/utils";
 export function WalletButton({ className }: { className?: string }) {
   const { activeWallet } = useWallet();
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Prevent hydration mismatch by only rendering dynamic content after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const address = activeWallet?.activeAccount?.address || "";
   const shortAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "";
@@ -33,7 +39,13 @@ export function WalletButton({ className }: { className?: string }) {
       >
         <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
 
-        {activeWallet ? (
+        {!mounted ? (
+          // Always show "Connect Wallet" during SSR to prevent hydration mismatch
+          <>
+            <Wallet2 className="w-5 h-5" />
+            <span>Connect Wallet</span>
+          </>
+        ) : activeWallet ? (
           <>
             <div className="w-5 h-5 rounded-full bg-primary-foreground/20 flex items-center justify-center">
               {activeWallet.metadata?.icon ? (
@@ -65,6 +77,11 @@ export function WalletButton({ className }: { className?: string }) {
 export function WalletButtonMinimal({ className }: { className?: string }) {
   const { activeWallet } = useWallet();
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <>
@@ -80,7 +97,9 @@ export function WalletButtonMinimal({ className }: { className?: string }) {
           className
         )}
       >
-        {activeWallet?.metadata?.icon ? (
+        {!mounted ? (
+          <Wallet2 className="w-6 h-6 text-muted-foreground" />
+        ) : activeWallet?.metadata?.icon ? (
           <img
             src={activeWallet.metadata.icon}
             alt={activeWallet.metadata.name}

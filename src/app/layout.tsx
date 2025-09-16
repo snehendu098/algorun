@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Poppins } from "next/font/google";
+import { Poppins } from "next/font/google";
 import "./globals.css";
 import WalletWrapper from "@/components/providers/wallet-wrapper";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Poppins({
   variable: "--font-poppins",
@@ -30,6 +31,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <WalletWrapper>{children}</WalletWrapper>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
