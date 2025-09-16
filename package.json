@@ -9,19 +9,41 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@blockshake/defly-connect": "^1.2.1",
+    "@magic-ext/algorand": "^25.0.0",
+    "@perawallet/connect": "^1.4.2",
+    "@radix-ui/react-label": "^2.1.7",
+    "@radix-ui/react-scroll-area": "^1.2.10",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@tanstack/react-query": "^5.89.0",
+    "@txnlab/use-wallet": "^4.3.1",
+    "@txnlab/use-wallet-react": "^4.3.1",
+    "@walletconnect/modal": "^2.7.0",
+    "@walletconnect/sign-client": "^2.21.8",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.23.13",
+    "lucide-react": "^0.544.0",
+    "magic-sdk": "^30.0.0",
+    "next": "15.5.3",
+    "next-themes": "^0.4.6",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "next": "15.5.3"
+    "react-icons": "^5.5.0",
+    "tailwind-merge": "^3.3.1",
+    "vaul": "^1.1.2"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@agoralabs-sh/avm-web-provider": "^1.7.0",
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
-    "@eslint/eslintrc": "^3"
+    "tailwindcss": "^4",
+    "tw-animate-css": "^1.3.8",
+    "typescript": "^5"
   }
 }
