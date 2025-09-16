@@ -10,6 +10,7 @@ import { useWallet } from "@txnlab/use-wallet-react";
 const RocketView = () => {
   const { phase, multiplier, crashAt, withdraw } = useGame();
   const { activeAddress } = useWallet();
+  const [countdown, setCountdown] = React.useState(20);
 
   const handleCashout = () => {
     if (activeAddress && phase === "running") {
@@ -17,11 +18,30 @@ const RocketView = () => {
     }
   };
 
+  React.useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (phase === "waiting") {
+      setCountdown(20);
+      interval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      setCountdown(0);
+    }
+    return () => clearInterval(interval);
+  }, [phase]);
+
   const getGameStateDisplay = () => {
     switch (phase) {
       case "waiting":
         return {
-          text: "Waiting for players...",
+          text: "Starting next round in",
           textColor: "text-blue-400",
           multiplierColor: "text-blue-400",
         };
@@ -72,7 +92,9 @@ const RocketView = () => {
               displayState.multiplierColor
             )}
           >
-            {displayMultiplier.toFixed(2)}x
+            {phase !== "waiting" ? 
+            `${displayMultiplier.toFixed(2)}x` :
+            `${countdown}s`}
           </div>
           {phase === "running" && activeAddress && (
             <Button
