@@ -1,4 +1,5 @@
-import React from "react";
+'use client'
+import React, {use, useEffect, useState} from "react";
 import { ScrollArea } from "../ui/scroll-area";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";

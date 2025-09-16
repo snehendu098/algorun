@@ -11,8 +11,8 @@ const geistSans = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Rand",
-  description: "Rand game",
+  title: "AlgoRun",
+  description: "AlgoRun The Game",
 };
 
 export default function RootLayout({
@@ -25,7 +25,7 @@ export default function RootLayout({
       <body className={`${geistSans.className} antialiased`}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          forcedTheme="dark"
           enableSystem
           disableTransitionOnChange
         >
