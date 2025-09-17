@@ -12,7 +12,7 @@ const RocketView = () => {
     switch (phase) {
       case "waiting":
         return {
-          text: "Waiting for players...",
+          text: "Waiting to start",
           textColor: "text-blue-400",
           multiplierColor: "text-blue-400",
         };
