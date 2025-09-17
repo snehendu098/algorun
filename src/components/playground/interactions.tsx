@@ -30,7 +30,7 @@ const PlaygroundInteractions = () => {
       const transaction = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
         sender: activeAddress,
         receiver: "5ZIBWA22BEWPYP7NOSDCNP4YAWYUQIWVOMUEOZMW6BNZW6RNY3C37RHULM",
-        amount: 0,
+        amount: betAmount,
         suggestedParams,
       });
 
