@@ -10,7 +10,7 @@ export default function Home() {
         {/* Nav */}
         <Navbar />
         {/* Grid */}
-        <div className="p-4 pt-0 grid-cols-5 grid gap-4">
+        <div className="p-4 pt-0 lg:grid-cols-5 grid-cols-1 grid gap-4">
           <PlaygroundInteractions />
           <RocketView />
         </div>

@@ -2,20 +2,11 @@
 import { ScrollArea } from "@radix-ui/react-scroll-area";
 import React from "react";
 import PrismaticBurst from "../ui/prismatic-burst";
-import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
 import { useGame } from "@/contexts/GameContext";
-import { useWallet } from "@txnlab/use-wallet-react";
 
 const RocketView = () => {
-  const { phase, multiplier, crashAt, withdraw } = useGame();
-  const { activeAddress } = useWallet();
-
-  const handleCashout = () => {
-    if (activeAddress && phase === "running") {
-      withdraw(activeAddress);
-    }
-  };
+  const { phase, multiplier, crashAt } = useGame();
 
   const getGameStateDisplay = () => {
     switch (phase) {
@@ -50,7 +41,7 @@ const RocketView = () => {
   const displayMultiplier = phase === "ended" && crashAt ? crashAt : multiplier;
 
   return (
-    <ScrollArea className="col-span-4 h-[85vh]">
+    <ScrollArea className="lg:col-span-4 col-span-1 h-[85vh]">
       <div className="bg-card/50 w-full h-full rounded-xl relative overflow-hidden">
         <PrismaticBurst
           paused={phase !== "running"}
@@ -74,14 +65,6 @@ const RocketView = () => {
           >
             {displayMultiplier.toFixed(2)}x
           </div>
-          {phase === "running" && activeAddress && (
-            <Button
-              className="mt-6 rounded-full px-8 cursor-pointer py-4 text-xl"
-              onClick={handleCashout}
-            >
-              Cashout
-            </Button>
-          )}
         </div>
       </div>
     </ScrollArea>

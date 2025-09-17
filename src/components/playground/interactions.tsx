@@ -14,7 +14,7 @@ import { toast } from "sonner";
 const PlaygroundInteractions = () => {
   const [betAmount, setBetAmount] = useState<number>(0);
   const [autoCashout, setAutoCashout] = useState<number>(0);
-  const { phase, joinGame, isConnected } = useGame();
+  const { phase, joinGame, isConnected, withdraw, stakes } = useGame();
   const { activeAddress, signTransactions, algodClient } = useWallet();
 
   const handlePlaceBet = async () => {
@@ -29,7 +29,7 @@ const PlaygroundInteractions = () => {
       const suggestedParams = await algodClient.getTransactionParams().do();
       const transaction = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
         sender: activeAddress,
-        receiver: activeAddress,
+        receiver: "5ZIBWA22BEWPYP7NOSDCNP4YAWYUQIWVOMUEOZMW6BNZW6RNY3C37RHULM",
         amount: 0,
         suggestedParams,
       });
@@ -68,7 +68,10 @@ const PlaygroundInteractions = () => {
     } catch (err: any) {
       toast.dismiss();
 
-      if (err?.code === 4100 || err?.message?.includes("User Rejected Request")) {
+      if (
+        err?.code === 4100 ||
+        err?.message?.includes("User Rejected Request")
+      ) {
         toast.error("Transaction cancelled by user");
       } else if (err?.message?.includes("insufficient balance")) {
         toast.error("Insufficient balance");
@@ -82,6 +85,17 @@ const PlaygroundInteractions = () => {
 
   const canPlaceBet =
     activeAddress && betAmount > 0 && phase === "waiting" && isConnected;
+
+  const handleCashout = () => {
+    if (activeAddress && phase === "running") {
+      withdraw(activeAddress);
+    }
+  };
+
+  const isPlayerInGame =
+    activeAddress && stakes.some((stake) => stake.address === activeAddress);
+  const canCashout =
+    activeAddress && phase === "running" && isPlayerInGame && isConnected;
   return (
     <ScrollArea className="h-[85vh] rounded-xl">
       <div className="col-span-1 w-full py-6 flex-1  flex backdrop-blur-2xl flex-col p-4 rounded-xl bg-card/50">
@@ -115,13 +129,21 @@ const PlaygroundInteractions = () => {
         </div>
         <Button
           className="mt-6 rounded-full"
-          onClick={handlePlaceBet}
-          disabled={!canPlaceBet}
+          onClick={
+            phase === "running" && canCashout ? handleCashout : handlePlaceBet
+          }
+          disabled={
+            phase === "waiting"
+              ? !canPlaceBet
+              : phase === "running"
+              ? !canCashout
+              : true
+          }
         >
           {phase === "waiting"
             ? "Place Bet"
             : phase === "running"
-            ? "Game Running"
+            ? "Cashout"
             : "Game Ended"}
         </Button>
 
