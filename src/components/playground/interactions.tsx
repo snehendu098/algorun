@@ -15,7 +15,15 @@ const PlaygroundInteractions = () => {
   const [betAmount, setBetAmount] = useState<number>(0);
   const [autoCashout, setAutoCashout] = useState<number>(0);
   const [isCashingOut, setIsCashingOut] = useState<boolean>(false);
-  const { phase, joinGame, isConnected, withdraw, stakes } = useGame();
+  const {
+    phase,
+    joinGame,
+    isConnected,
+    withdraw,
+    stakes,
+    isInQueue,
+    queueMessage
+  } = useGame();
   const { activeAddress, signTransactions, algodClient } = useWallet();
 
   const handlePlaceBet = async () => {
@@ -60,11 +68,17 @@ const PlaygroundInteractions = () => {
       if (
         result["confirmedRound"] &&
         activeAddress &&
-        betAmount > 0 &&
-        phase === "waiting"
+        betAmount > 0
       ) {
-        joinGame(activeAddress, betAmount);
-        toast.success("Bet placed successfully!");
+        // Pass the transaction ID to joinGame
+        joinGame(activeAddress, betAmount, txid);
+
+        // Check if the bet was queued (game might have started during confirmation)
+        if (phase !== "waiting") {
+          toast.info("Your bet has been queued for the next round");
+        } else {
+          toast.success("Bet placed successfully!");
+        }
       }
     } catch (err: any) {
       console.log(err);
@@ -87,7 +101,7 @@ const PlaygroundInteractions = () => {
   };
 
   const canPlaceBet =
-    activeAddress && betAmount > 0 && phase === "waiting" && isConnected;
+    activeAddress && betAmount > 0 && phase === "waiting" && isConnected && !isInQueue;
 
   const handleCashout = () => {
     if (activeAddress && phase === "running" && !isCashingOut) {
@@ -149,14 +163,17 @@ const PlaygroundInteractions = () => {
             phase === "running" && canCashout ? handleCashout : handlePlaceBet
           }
           disabled={
-            phase === "waiting"
+            isInQueue ||
+            (phase === "waiting"
               ? !canPlaceBet
               : phase === "running"
               ? !canCashout
-              : true
+              : true)
           }
         >
-          {phase === "waiting"
+          {isInQueue
+            ? "Queued for Next Round"
+            : phase === "waiting"
             ? "Place Bet"
             : phase === "running"
             ? isCashingOut
@@ -164,6 +181,15 @@ const PlaygroundInteractions = () => {
               : "Cashout"
             : "Game Ended"}
         </Button>
+
+        {/* Queue status message */}
+        {isInQueue && queueMessage && (
+          <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+            <p className="text-sm text-yellow-500 text-center">
+              {queueMessage}
+            </p>
+          </div>
+        )}
 
         <div className="mt-4 text-sm text-center">
           <div
@@ -173,6 +199,11 @@ const PlaygroundInteractions = () => {
           >
             {isConnected ? "● Connected" : "● Disconnected"}
           </div>
+          {isInQueue && (
+            <div className="text-xs px-2 py-1 mt-1 text-yellow-500">
+              ● Queued for next round
+            </div>
+          )}
         </div>
 
         <UsersView />

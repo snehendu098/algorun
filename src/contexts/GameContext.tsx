@@ -10,6 +10,11 @@ import { Stake } from "@/interfaces";
 
 type GamePhase = "waiting" | "running" | "ended";
 
+interface QueuedBet {
+  address: string;
+  amount: number;
+}
+
 interface GameContextType {
   // Game state
   phase: GamePhase;
@@ -19,11 +24,16 @@ interface GameContextType {
   totalStakeAmount: number;
   crashAt?: number;
 
+  // Queue state
+  queuedBets: QueuedBet[];
+  isInQueue: boolean;
+  queueMessage?: string;
+
   // Connection state
   isConnected: boolean;
 
   // Actions
-  joinGame: (address: string, amount: number) => void;
+  joinGame: (address: string, amount: number, transactionId?: string) => void;
   withdraw: (address: string) => void;
 
   // Connection management
@@ -45,6 +55,9 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const [totalPlayers, setTotalPlayers] = useState(0);
   const [totalStakeAmount, setTotalStakeAmount] = useState(0);
   const [crashAt, setCrashAt] = useState<number>();
+  const [queuedBets, setQueuedBets] = useState<QueuedBet[]>([]);
+  const [isInQueue, setIsInQueue] = useState(false);
+  const [queueMessage, setQueueMessage] = useState<string>();
   const [isConnected, setIsConnected] = useState(false);
   const wsUrl = process.env.NEXT_PUBLIC_WS_URL as string;
 
@@ -119,6 +132,12 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         setTotalPlayers(data.data.totalPlayers || 0);
         setTotalStakeAmount(data.data.totalStakeAmount || 0);
         setMultiplier(data.data.currentMultiplier || 1.0);
+        setQueuedBets(data.data.queuedBets || []);
+        // Check if current user is in queue
+        if (data.data.queuedBets) {
+          const userAddress = localStorage.getItem('activeAddress');
+          setIsInQueue(data.data.queuedBets.some((bet: QueuedBet) => bet.address === userAddress));
+        }
         break;
 
       case "waiting_phase":
@@ -128,6 +147,31 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         setTotalPlayers(0);
         setTotalStakeAmount(0);
         setCrashAt(undefined);
+        // Don't clear queue info here as it might still be processing
+        break;
+
+      case "bet_queued":
+        // Update queue state when a bet is queued
+        const userAddress = localStorage.getItem('activeAddress');
+        if (data.address === userAddress) {
+          setIsInQueue(true);
+          setQueueMessage(data.message);
+        }
+        // Update queued bets list if provided
+        if (data.queuedBets) {
+          setQueuedBets(data.queuedBets);
+        }
+        break;
+
+      case "queue_processed":
+        // Clear queue state when queue is processed
+        setQueuedBets([]);
+        setIsInQueue(false);
+        setQueueMessage(undefined);
+        // Update stakes with processed bets
+        setStakes(data.stakes || []);
+        setTotalPlayers(data.totalPlayers || 0);
+        setTotalStakeAmount(data.totalStakeAmount || 0);
         break;
 
       case "player_joined":
@@ -160,6 +204,17 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         break;
 
       case "join_result":
+        // Handle join result with queue status
+        console.log(data.message);
+        if (data.queued) {
+          const userAddress = localStorage.getItem('activeAddress');
+          if (userAddress) {
+            setIsInQueue(true);
+            setQueueMessage(data.message);
+          }
+        }
+        break;
+
       case "withdraw_result":
         // Handle success/error messages if needed
         console.log(data.message);
@@ -170,13 +225,17 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     }
   };
 
-  const joinGame = (address: string, amount: number) => {
+  const joinGame = (address: string, amount: number, transactionId?: string) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      // Store active address for queue checking
+      localStorage.setItem('activeAddress', address);
+
       wsRef.current.send(
         JSON.stringify({
           type: "join_game",
           address,
           amount,
+          transactionId,
         })
       );
     }
@@ -209,6 +268,9 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     totalPlayers,
     totalStakeAmount,
     crashAt,
+    queuedBets,
+    isInQueue,
+    queueMessage,
     isConnected,
     joinGame,
     withdraw,
