@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ScrollArea } from "../ui/scroll-area";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
@@ -14,6 +14,7 @@ import { toast } from "sonner";
 const PlaygroundInteractions = () => {
   const [betAmount, setBetAmount] = useState<number>(0);
   const [autoCashout, setAutoCashout] = useState<number>(0);
+  const [isCashingOut, setIsCashingOut] = useState<boolean>(false);
   const { phase, joinGame, isConnected, withdraw, stakes } = useGame();
   const { activeAddress, signTransactions, algodClient } = useWallet();
 
@@ -30,7 +31,7 @@ const PlaygroundInteractions = () => {
       const transaction = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
         sender: activeAddress,
         receiver: "5ZIBWA22BEWPYP7NOSDCNP4YAWYUQIWVOMUEOZMW6BNZW6RNY3C37RHULM",
-        amount: betAmount,
+        amount: BigInt(betAmount * 1000000),
         suggestedParams,
       });
 
@@ -66,6 +67,8 @@ const PlaygroundInteractions = () => {
         toast.success("Bet placed successfully!");
       }
     } catch (err: any) {
+      console.log(err);
+
       toast.dismiss();
 
       if (
@@ -87,15 +90,28 @@ const PlaygroundInteractions = () => {
     activeAddress && betAmount > 0 && phase === "waiting" && isConnected;
 
   const handleCashout = () => {
-    if (activeAddress && phase === "running") {
+    if (activeAddress && phase === "running" && !isCashingOut) {
+      setIsCashingOut(true);
       withdraw(activeAddress);
     }
   };
 
   const isPlayerInGame =
     activeAddress && stakes.some((stake) => stake.address === activeAddress);
+
+  // Reset cashout state when player is no longer in game or game phase changes
+  useEffect(() => {
+    if (!isPlayerInGame || phase !== "running") {
+      setIsCashingOut(false);
+    }
+  }, [isPlayerInGame, phase]);
+
   const canCashout =
-    activeAddress && phase === "running" && isPlayerInGame && isConnected;
+    activeAddress &&
+    phase === "running" &&
+    isPlayerInGame &&
+    isConnected &&
+    !isCashingOut;
   return (
     <ScrollArea className="h-[85vh] rounded-xl">
       <div className="col-span-1 w-full py-6 flex-1  flex backdrop-blur-2xl flex-col p-4 rounded-xl bg-card/50">
@@ -113,7 +129,7 @@ const PlaygroundInteractions = () => {
             placeholder="Enter bet amount"
           />
         </div>
-        <div className="space-y-2 mt-6">
+        {/* <div className="space-y-2 mt-6">
           <Label className="text-primary text-md font-semibold">
             Auto Cashout
           </Label>
@@ -126,7 +142,7 @@ const PlaygroundInteractions = () => {
             className="w-full border-2 rounded-xl bg-background"
             placeholder="Auto cashout multiplier"
           />
-        </div>
+        </div> */}
         <Button
           className="mt-6 rounded-full"
           onClick={
@@ -143,7 +159,9 @@ const PlaygroundInteractions = () => {
           {phase === "waiting"
             ? "Place Bet"
             : phase === "running"
-            ? "Cashout"
+            ? isCashingOut
+              ? "Cashing Out..."
+              : "Cashout"
             : "Game Ended"}
         </Button>
 
